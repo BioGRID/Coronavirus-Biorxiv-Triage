@@ -1,0 +1,7 @@
+activates
+coassemble
+coassembled
+coassemblies
+coassembly
+complex
+complexed

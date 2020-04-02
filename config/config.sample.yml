@@ -1,0 +1,11 @@
+download_path: 'downloads'
+data_file: 'data.json'
+output_file: 'results.csv'
+source_url: 'https://connect.biorxiv.org/relate/collection_json.php?grp=181'
+high_file: 'high_hits.txt'
+med_file: 'med_hits.txt'
+low_file: 'low_hits.txt' 
+high_bounty: 10
+med_bounty: 5
+low_bounty: 1
+biorxiv_bounty: 1
