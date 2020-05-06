@@ -46,3 +46,7 @@ suppresses
 suppression
 twohybrid
 interacted
+receptor
+receptors
+protease
+proteases
