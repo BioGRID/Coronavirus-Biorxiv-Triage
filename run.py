@@ -88,6 +88,32 @@ def fetch_keyword_set(file_name):
 
     return set(keywords)
 
+# python program to print initials of a name 
+def author_short(str1):
+    # split the string into a list 
+    lst = str1.split()
+    lastNameLoc = 1
+    lastname = lst[-1].title()
+    if(lastname[0:2].lower() == "jr" or lastname[0:2].lower() == "sr" ) :
+        lastname = lst[-2]
+        lastNameLoc = 2
+
+    initials = ""
+
+    # traverse in the list 
+    for i in range(len(lst)-lastNameLoc):
+        str1 = lst[i].strip().strip(".,;")
+
+        # If first name or a single character
+        if( i == 0 or len(str1) == 1 or str1[0].isupper() ) :
+            initials += str1[0].upper()
+        else :
+            lastname = str1 + " " + lastname
+        
+    # l[-1] gives last item of list l.
+    name = lastname + " " + initials
+    return name
+
 def main(args):
 
     header = [
@@ -134,9 +160,15 @@ def main(args):
         csv_out.writerow(header)
         for rel in data["rels"]:
 
+            # Ignore papers with no authors
+            if(rel["rel_num_authors"] == 0) :
+                continue
+
             # Clean Author Text
-            authors = rel["rel_authors"].split(";")
-            authors = [author_clean(author) for author in authors]
+            # authors = rel["rel_authors"].split(";")
+            # authors = [author_clean(author) for author in authors]
+            authors = []
+            authors = [author_clean(author_short(author["author_name"])) for author in rel["rel_authors"]]
 
             # Determine the score value for the document
             # by converting Title and Abstract to Tokens
