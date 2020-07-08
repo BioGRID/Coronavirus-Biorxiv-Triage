@@ -104,11 +104,12 @@ def author_short(str1):
     for i in range(len(lst)-lastNameLoc):
         str1 = lst[i].strip().strip(".,;")
 
-        # If first name or a single character
-        if( i == 0 or len(str1) == 1 or str1[0].isupper() ) :
-            initials += str1[0].upper()
-        else :
-            lastname = str1 + " " + lastname
+        if len(str1) > 0 :
+            # If first name or a single character
+            if( i == 0 or len(str1) == 1 or str1[0].isupper() ) :
+                initials += str1[0].upper()
+            else :
+                lastname = str1 + " " + lastname
         
     # l[-1] gives last item of list l.
     name = lastname + " " + initials
