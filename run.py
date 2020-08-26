@@ -11,9 +11,11 @@ import ujson
 import requests
 import sys
 import argparse
+import datetime
 import csv
 import os
 import spacy
+import time
 import config as cfg
 from nltk.stem.snowball import SnowballStemmer
 from collections import Counter
@@ -88,9 +90,9 @@ def fetch_keyword_set(file_name):
 
     return set(keywords)
 
-# python program to print initials of a name 
+
 def author_short(str1):
-    # split the string into a list 
+    """ Generate a short author name """ 
     lst = str1.split()
     lastNameLoc = 1
     lastname = lst[-1].title()
@@ -115,6 +117,17 @@ def author_short(str1):
     name = lastname + " " + initials
     return name
 
+def is_wanted_date( end_date, pub_date ) :
+    """ Determine difference between pub_date and our desired end_date """
+    pub_date = datetime.datetime.strptime( pub_date, '%Y-%m-%d' )
+    pub_date = pub_date.date()
+
+    days_diff = (pub_date - end_date).days
+    if days_diff > 0 :
+        return True
+
+    return False
+
 def main(args):
 
     header = [
@@ -130,16 +143,51 @@ def main(args):
         "MATCHING_KEYWORDS",
     ]
 
+    # We only want papers going back to this date
+    end_date = datetime.datetime.strptime( args.end, '%Y-%m-%d')
+    end_date = end_date.date()
+
     # If download argument is set
     # grab the latest json from BioRxiv
+    done = False
+    index = 0
+    rels = {}
     if args.download:
-        resp = requests.get(source_url)
-        if resp.status_code == 200:
-            data = ujson.loads(resp.text)
+        while not done :
+            resp = requests.get(source_url + "/" + str(index))
+            if resp.status_code == 200:
+                data = ujson.loads(resp.text)
+                if 'count' in data['messages'][0] :
+                    print("INDEX " + str(index) + " => " + str(data['messages'][0]['count']) + " RETRIEVED")
+                    if data['messages'][0]['count'] <= 0 or data['messages'][0]['status'] != 'ok' :
+                        # There are no more papers
+                        # to parse, so we're done
+                        done = True
+                    else :
+                        # Step through each rel and add it to the dictionary
+                        # if it's a wanted date
+                        for rel in data['collection'] :
+                            pub_date = rel['rel_date']
+                            if is_wanted_date( end_date, pub_date ) :
+                                rels[rel['rel_doi']] = rel
+                            else :
+                                # We've reached a date we don't want
+                                # so end the loop
+                                done = True
+                else :
+                    done = True
+            else:
+                print(resp)
+                sys.exit(0)
+            index += 30
+            time.sleep(2)
+
+        if len(rels) > 0 :
+            print("DOWNLOADED " + str(len(rels)) + " PUBS")
             with open(data_file, "w") as f:
-                ujson.dump(data, f)
-        else:
-            print(resp)
+                ujson.dump(rels, f)
+        else :
+            print("No Pubs Downloaded")
             sys.exit(0)
 
     # Load data from json data file
@@ -153,13 +201,13 @@ def main(args):
         "low": fetch_keyword_set(low_file),
     }
 
-    print( "Triaging: " + str(len(data["rels"])) + " preprint articles from BioRxiv and MedRxiv" )
+    print( "Triaging: " + str(len(data)) + " preprint articles from BioRxiv and MedRxiv" )
 
     # Output Results to File
     with open(output_file, "w") as out:
         csv_out = csv.writer(out)
         csv_out.writerow(header)
-        for rel in data["rels"]:
+        for doi, rel in data.items():
 
             # Ignore papers with no authors
             if(rel["rel_num_authors"] == 0) :
@@ -227,6 +275,15 @@ if __name__ == "__main__":
         action="store_true",
         required=False,
         help="Download the JSON file new before starting parsing",
+    )
+
+    # date to parse to
+    parser.add_argument(
+        "-e",
+        "--end",
+        type=str,
+        default='1970-01-01',
+        help="Date to end parsing at",
     )
 
     args = parser.parse_args()
