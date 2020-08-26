@@ -1,7 +1,7 @@
 download_path: 'downloads'
 data_file: 'data.json'
 output_file: 'results.csv'
-source_url: 'https://connect.biorxiv.org/relate/collection_json.php?grp=181'
+source_url: 'https://api.biorxiv.org/covid19/'
 high_file: 'high_hits.txt'
 med_file: 'med_hits.txt'
 low_file: 'low_hits.txt' 
