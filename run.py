@@ -32,16 +32,19 @@ low_file = cfg.data["low_file"]
 stemmer = SnowballStemmer(language="english")
 nlp = spacy.load("en_core_web_sm")
 
+
 def is_token_allowed(token):
     """ Only allow valid tokens """
     if not token or not token.string.strip() or token.is_stop or token.is_punct:
         return False
     return True
 
+
 def preprocess_token(token):
     """ Preprocess a token """
     token = token.lemma_.strip().lower()
     return stemmer.stem(token)
+
 
 def author_clean(author):
     """ Clean an author and return the formatted string """
@@ -60,12 +63,14 @@ def author_clean(author):
 
     return clean_author
 
+
 def format_author_short(authors, date):
     """ Create an authors short formatted author entry """
     author = author_clean(authors[0])
     date_split = date.split("-")
     author = author + " (" + date_split[0] + ")"
     return author
+
 
 def calculate_score_and_matching_keywords(keywords, doc_tokens, site):
     """ Generate a score for each paper based on occurrences of triage keywords """
@@ -78,6 +83,7 @@ def calculate_score_and_matching_keywords(keywords, doc_tokens, site):
 
     return sorted(matching_keywords), score
 
+
 def fetch_keyword_set(file_name):
     """ Fetch a set of keywords out of a file """
     keywords = set()
@@ -86,47 +92,51 @@ def fetch_keyword_set(file_name):
             keywords.add(line.replace("-", "").strip())
 
     keywords = nlp(" ".join(keywords))
-    keywords = [preprocess_token(token) for token in keywords if is_token_allowed(token)]
+    keywords = [
+        preprocess_token(token) for token in keywords if is_token_allowed(token)
+    ]
 
     return set(keywords)
 
 
 def author_short(str1):
-    """ Generate a short author name """ 
+    """ Generate a short author name """
     lst = str1.split()
     lastNameLoc = 1
     lastname = lst[-1].title()
-    if(lastname[0:2].lower() == "jr" or lastname[0:2].lower() == "sr" ) :
+    if lastname[0:2].lower() == "jr" or lastname[0:2].lower() == "sr":
         lastname = lst[-2]
         lastNameLoc = 2
 
     initials = ""
 
-    # traverse in the list 
-    for i in range(len(lst)-lastNameLoc):
+    # traverse in the list
+    for i in range(len(lst) - lastNameLoc):
         str1 = lst[i].strip().strip(".,;")
 
-        if len(str1) > 0 :
+        if len(str1) > 0:
             # If first name or a single character
-            if( i == 0 or len(str1) == 1 or str1[0].isupper() ) :
+            if i == 0 or len(str1) == 1 or str1[0].isupper():
                 initials += str1[0].upper()
-            else :
+            else:
                 lastname = str1 + " " + lastname
-        
+
     # l[-1] gives last item of list l.
     name = lastname + " " + initials
     return name
 
-def is_wanted_date( end_date, pub_date ) :
+
+def is_wanted_date(end_date, pub_date):
     """ Determine difference between pub_date and our desired end_date """
-    pub_date = datetime.datetime.strptime( pub_date, '%Y-%m-%d' )
+    pub_date = datetime.datetime.strptime(pub_date, "%Y-%m-%d")
     pub_date = pub_date.date()
 
     days_diff = (pub_date - end_date).days
-    if days_diff > 0 :
+    if days_diff > 0:
         return True
 
     return False
+
 
 def main(args):
 
@@ -144,7 +154,7 @@ def main(args):
     ]
 
     # We only want papers going back to this date
-    end_date = datetime.datetime.strptime( args.end, '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(args.end, "%Y-%m-%d")
     end_date = end_date.date()
 
     # If download argument is set
@@ -153,28 +163,37 @@ def main(args):
     index = 0
     rels = {}
     if args.download:
-        while not done :
+        while not done:
             resp = requests.get(source_url + "/" + str(index))
             if resp.status_code == 200:
                 data = ujson.loads(resp.text)
-                if 'count' in data['messages'][0] :
-                    print("INDEX " + str(index) + " => " + str(data['messages'][0]['count']) + " RETRIEVED")
-                    if data['messages'][0]['count'] <= 0 or data['messages'][0]['status'] != 'ok' :
+                if "count" in data["messages"][0]:
+                    print(
+                        "INDEX "
+                        + str(index)
+                        + " => "
+                        + str(data["messages"][0]["count"])
+                        + " RETRIEVED"
+                    )
+                    if (
+                        data["messages"][0]["count"] <= 0
+                        or data["messages"][0]["status"] != "ok"
+                    ):
                         # There are no more papers
                         # to parse, so we're done
                         done = True
-                    else :
+                    else:
                         # Step through each rel and add it to the dictionary
                         # if it's a wanted date
-                        for rel in data['collection'] :
-                            pub_date = rel['rel_date']
-                            if is_wanted_date( end_date, pub_date ) :
-                                rels[rel['rel_doi']] = rel
-                            else :
+                        for rel in data["collection"]:
+                            pub_date = rel["rel_date"]
+                            if is_wanted_date(end_date, pub_date):
+                                rels[rel["rel_doi"]] = rel
+                            else:
                                 # We've reached a date we don't want
                                 # so end the loop
                                 done = True
-                else :
+                else:
                     done = True
             else:
                 print(resp)
@@ -182,11 +201,11 @@ def main(args):
             index += 30
             time.sleep(2)
 
-        if len(rels) > 0 :
+        if len(rels) > 0:
             print("DOWNLOADED " + str(len(rels)) + " PUBS")
             with open(data_file, "w") as f:
                 ujson.dump(rels, f)
-        else :
+        else:
             print("No Pubs Downloaded")
             sys.exit(0)
 
@@ -201,7 +220,7 @@ def main(args):
         "low": fetch_keyword_set(low_file),
     }
 
-    print( "Triaging: " + str(len(data)) + " preprint articles from BioRxiv and MedRxiv" )
+    print("Triaging: " + str(len(data)) + " preprint articles from BioRxiv and MedRxiv")
 
     # Output Results to File
     with open(output_file, "w") as out:
@@ -210,27 +229,42 @@ def main(args):
         for doi, rel in data.items():
 
             # Ignore papers with no authors
-            if(rel["rel_num_authors"] == 0) :
+            if rel["rel_num_authors"] == 0:
                 continue
 
             # Clean Author Text
             # authors = rel["rel_authors"].split(";")
             # authors = [author_clean(author) for author in authors]
             authors = []
-            authors = [author_clean(author_short(author["author_name"])) for author in rel["rel_authors"]]
+            authors = [
+                author_clean(author_short(author["author_name"]))
+                for author in rel["rel_authors"]
+            ]
 
             # Determine the score value for the document
             # by converting Title and Abstract to Tokens
             # and seeing how many of our keywords occur in
             # the text
-            pub_doc = nlp( rel["rel_title"].replace("-", "") + " " + rel["rel_abs"].replace("-", "") )
-            filtered_tokens = [preprocess_token(token) for token in pub_doc if is_token_allowed(token)]
+            pub_doc = nlp(
+                rel["rel_title"].replace("-", "")
+                + " "
+                + rel["rel_abs"].replace("-", "")
+            )
+            filtered_tokens = [
+                preprocess_token(token) for token in pub_doc if is_token_allowed(token)
+            ]
             token_count = Counter(filtered_tokens)
 
             # Calculate the score for each set of keywords
-            high_matches, high_score = calculate_score_and_matching_keywords(keyword_sets["high"], token_count, rel["rel_site"])
-            med_matches, med_score = calculate_score_and_matching_keywords(keyword_sets["med"], token_count, rel["rel_site"])
-            low_matches, low_score = calculate_score_and_matching_keywords(keyword_sets["low"], token_count, rel["rel_site"])
+            high_matches, high_score = calculate_score_and_matching_keywords(
+                keyword_sets["high"], token_count, rel["rel_site"]
+            )
+            med_matches, med_score = calculate_score_and_matching_keywords(
+                keyword_sets["med"], token_count, rel["rel_site"]
+            )
+            low_matches, low_score = calculate_score_and_matching_keywords(
+                keyword_sets["low"], token_count, rel["rel_site"]
+            )
 
             # Combine keyword lists
             matching_keywords = high_matches + med_matches + low_matches
@@ -239,7 +273,11 @@ def main(args):
                 file_keywords = "|".join(matching_keywords)
 
             # Calculate final score by multiplying by bounties
-            score = (high_score * cfg.data["high_bounty"]) + (med_score * cfg.data["med_bounty"]) + (low_score * cfg.data["low_bounty"])
+            score = (
+                (high_score * cfg.data["high_bounty"])
+                + (med_score * cfg.data["med_bounty"])
+                + (low_score * cfg.data["low_bounty"])
+            )
 
             # Add an extra bounty if it's a BioRxiv paper
             if rel["rel_site"].lower() == "biorxiv":
@@ -263,6 +301,7 @@ def main(args):
 
             print("Document Score: " + str(score))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Parse a set of papers from Biorxiv JSON, and test against a set of keywords to determine a score"
@@ -279,11 +318,7 @@ if __name__ == "__main__":
 
     # date to parse to
     parser.add_argument(
-        "-e",
-        "--end",
-        type=str,
-        default='1970-01-01',
-        help="Date to end parsing at",
+        "-e", "--end", type=str, default="1970-01-01", help="Date to end parsing at"
     )
 
     args = parser.parse_args()
