@@ -14,6 +14,6 @@ A simple script to take the Biorxiv Coronavirus Collection and Triage it for int
 + Run: `pipenv install`
 + Run: `python -m spacy download en_core_web_sm`
 + Create a directory called `<DOWNLOAD_PATH>` (what you set `download_path` equal to in the config file)
-+ Run: `python run.py -d`
++ Run: `python run.py -d -e <DATE>` where `<DATE>` is replaced with the date you want to go back to. For example, to fetch papers back to August 15, 2020 use: `2020-08-15`
 + On subsequent runs, if you don't want to re-download the json, you can simply execute: `python run.py`
-+ This will create a file called `results.csv` in the `<DOWNLOAD_PATH>` folder
++ Running this script will will create a file called `results.csv` in the `<DOWNLOAD_PATH>` folder

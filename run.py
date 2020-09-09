@@ -140,6 +140,7 @@ def is_wanted_date(end_date, pub_date):
 
 def main(args):
 
+    index_increment = 30  # Number of papers per page fetched
     header = [
         "DOI",
         "AUTHOR_SHORT",
@@ -198,7 +199,7 @@ def main(args):
             else:
                 print(resp)
                 sys.exit(0)
-            index += 30
+            index += index_increment
             time.sleep(2)
 
         if len(rels) > 0:
