@@ -140,7 +140,7 @@ def is_wanted_date(end_date, pub_date):
 
 def main(args):
 
-    index_increment = 30 # Number of papers per page fetched
+    index_increment = 30  # Number of papers per page fetched
     header = [
         "DOI",
         "AUTHOR_SHORT",
